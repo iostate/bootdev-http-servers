@@ -1,3 +1,3 @@
 module github.com/iostate/bootdev-http-servers
 
-go 1.21.4
+go 1.24.0
