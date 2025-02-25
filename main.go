@@ -31,9 +31,10 @@ func main() {
 	// file server, strip the fucking prefix
 	fs := http.FileServer(http.Dir("."))
 	fsHandler :=  http.StripPrefix("/app", fs)
-
-	mux.HandleFunc("GET /api/metrics", apiCfg.MetricsHandler)
-	mux.HandleFunc("POST /api/reset", apiCfg.resetToZero)
+	
+	mux.HandleFunc("POST /api/validate_chirp", ValidateChirpHandler)
+	mux.HandleFunc("GET /admin/metrics", apiCfg.MetricsHandler)
+	mux.HandleFunc("POST /admin/reset", apiCfg.resetToZero)
 	mux.HandleFunc("GET /api/healthz", ReadinessHandler)
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(fsHandler))
 
