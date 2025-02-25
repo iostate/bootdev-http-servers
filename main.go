@@ -1,12 +1,20 @@
 package main
 
 import (
+	"database/sql"
+	"fmt"
 	"net/http"
+	"os"
 	"sync/atomic"
+
+	"github.com/iostate/bootdev-http-servers/internal/database"
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 type apiConfig struct {
 	fileServerHits atomic.Int32
+	dbQueries 	*database.Queries
 }
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
@@ -24,7 +32,19 @@ func (cfg *apiConfig) resetToZero(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	apiCfg := apiConfig{}
+	godotenv.Load()
+
+	// Start SQL
+	dbURL := os.Getenv("DB_URL")
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		fmt.Errorf("Error opening databsae: %w", err)
+	}
+
+	// Add database.Queries to apiCfg
+	apiCfg := apiConfig{
+		dbQueries: database.New(db),
+	}
 
 	mux := http.NewServeMux()
 	
