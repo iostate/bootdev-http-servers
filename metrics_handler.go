@@ -6,7 +6,7 @@ import (
 )
 
 // returns HTML with number of file server hits
-func (cfg *apiConfig) MetricsHandler(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, r *http.Request) {
 	
 	w.Header().Set("Content-Type", "text/html")
 	htmlToReturn := fmt.Sprintf(`<html>
