@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -37,7 +36,7 @@ func main() {
 	}
 	dbConn, err := sql.Open("postgres", dbURL)
 	if err != nil {
-		fmt.Errorf("Error opening databsae: %w", err)
+		log.Printf("Error opening databsae: %w", err)
 	}
 	dbQueries := database.New(dbConn)
 
@@ -53,6 +52,7 @@ func main() {
 	fs := http.FileServer(http.Dir("."))
 	fsHandler :=  http.StripPrefix("/app", fs)
 	
+	mux.HandleFunc("POST /api/login", apiCfg.handlerLogin)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handlerGetChirpsById)
 	mux.HandleFunc("POST /api/chirps", apiCfg.handlerChirpsCreate)
 	mux.HandleFunc("GET /api/chirps", apiCfg.handlerGetChirps)

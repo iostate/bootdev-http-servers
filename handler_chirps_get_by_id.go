@@ -16,7 +16,7 @@ func (cfg *apiConfig) handlerGetChirpsById(w http.ResponseWriter, r *http.Reques
 	}
 	chirp, err := cfg.db.GetChirpById(r.Context(), chirpID)
 	if err != nil {
-		log.Printf("Error getting chirp by ID: %w", err)
+		log.Printf("Error getting chirp by ID: %v", err)
 		respondWithError(w, http.StatusNotFound, "Error retrieving chirp by ID", err)
 		return
 	}
