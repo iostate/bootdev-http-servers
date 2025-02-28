@@ -14,21 +14,21 @@ import (
 )
 
 type apiConfig struct {
-	fileServerHits 		atomic.Int32
-	db 					*database.Queries
-	platform 			string
-	jwtSecret 			string
+	fileServerHits atomic.Int32
+	db             *database.Queries
+	platform       string
+	jwtSecret      string
 }
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
-	return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cfg.fileServerHits.Add(1)
 		next.ServeHTTP(w, r)
 	})
 }
 
 func main() {
-	
+
 	// Start SQL
 	godotenv.Load()
 	dbURL := os.Getenv("DB_URL")
@@ -50,16 +50,17 @@ func main() {
 	// Add database.Queries to apiCfg
 	apiCfg := apiConfig{
 		fileServerHits: atomic.Int32{},
-		db: dbQueries,
-		platform: os.Getenv("PLATFORM"),
-		jwtSecret: jwtSecret,
+		db:             dbQueries,
+		platform:       os.Getenv("PLATFORM"),
+		jwtSecret:      jwtSecret,
 	}
-	
 
 	mux := http.NewServeMux()
 	fs := http.FileServer(http.Dir("."))
-	fsHandler :=  http.StripPrefix("/app", fs)
-	
+	fsHandler := http.StripPrefix("/app", fs)
+
+	mux.HandleFunc("POST /api/refresh", apiCfg.handleRefresh)
+	mux.HandleFunc("POST /api/revoke", apiCfg.handleRevoke)
 	mux.HandleFunc("POST /api/login", apiCfg.handlerLogin)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handlerGetChirpsById)
 	mux.HandleFunc("POST /api/chirps", apiCfg.handlerChirpsCreate)
@@ -72,7 +73,7 @@ func main() {
 
 	server := &http.Server{
 		Handler: mux,
-		Addr: ":8080",
+		Addr:    ":8080",
 	}
 
 	server.ListenAndServe()

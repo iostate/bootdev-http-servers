@@ -1,35 +1,8 @@
-// package auth
-
-// import (
-// 	"fmt"
-
-// 	"golang.org/x/crypto/bcrypt"
-// )
-
-// func HashPassword(password string) (string, error) {
-// 	hashedPw, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-// 	if err != nil {
-// 		return "", fmt.Errorf("Error hashing password: %w", err)
-// 	}
-
-// 	return string(hashedPw), nil
-// }
-
-// /**
-// 	Returns nil on success
-// 	Returns error on error
-// */
-// func CheckPasswordHash(password, hash string) error {
-// 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-// 	if err != nil {
-// 		return fmt.Errorf("passwords do not match: %w", err)
-// 	}
-// 	return nil
-// }
-
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"strings"
@@ -59,7 +32,8 @@ func CheckPasswordHash(password, hash string) error {
 }
 
 func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (string, error) {
-	// these are standard claims specified in a specification
+	// these are standardized JWT claims RFC 7519
+	// RFC7519 link: https://datatracker.ietf.org/doc/html/rfc7519#section-4.1
 	claims := &jwt.RegisteredClaims{
 		Issuer: string(TokenTypeAccess),
 		// Use UTC in APIs & distributed systems,
@@ -69,7 +43,7 @@ func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (str
 		Subject:   userID.String(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	// do not assume this will convert to byte automatically even though in v5 it supposedly does.
+	// do not assume this will convert to byte automatically even though in jwt/v5 it supposedly does.
 	return token.SignedString([]byte(tokenSecret))
 }
 
@@ -85,6 +59,7 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 	if err != nil {
 		return uuid.Nil, err
 	}
+
 	if !token.Valid {
 		return uuid.Nil, err
 	}
@@ -128,4 +103,13 @@ func GetBearerToken(headers http.Header) (string, error) {
 	}
 
 	return tokenString, nil
+}
+
+func MakeRefreshToken() (string, error) {
+	token := make([]byte, 32)
+	_, err := rand.Read(token)
+	if err != nil {
+		return "", fmt.Errorf("Error reading random bytes into token")
+	}
+	return hex.EncodeToString(token), nil
 }
