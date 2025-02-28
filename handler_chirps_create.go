@@ -9,50 +9,58 @@ import (
 	"unicode"
 
 	"github.com/google/uuid"
+	auth "github.com/iostate/bootdev-http-servers/internal"
 	"github.com/iostate/bootdev-http-servers/internal/database"
 )
 
-type requestBody struct {
-	Body 	string `json:"body"`
-	UserID 	uuid.UUID 	`json:"user_id"`
-}
-
 // Chirp response
 type Chirp struct {
-	Id 			uuid.UUID 	`json:"id"`
-	CreatedAt 	time.Time 	`json:"created_at"`
-	UpdatedAt 	time.Time	`json:"updated_at"`
-	Body		string		`json:"body"`
-	UserID		uuid.UUID	`json:"user_id"`
+	Id        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Body      string    `json:"body"`
+	UserID    uuid.UUID `json:"user_id"`
 }
 
-
 func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request) {
+	type parameters struct {
+		Body   string    `json:"body"`
+		UserID uuid.UUID `json:"user_id"`
+	}
 
-	var reqBody requestBody
-	err := json.NewDecoder(r.Body).Decode(&reqBody)
+	// AUTH
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Error getting bearer token", err)
+		return
+	}
+	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Error validating JWT", err)
+		return
+	}
+
+	// Now that auth is done, then decode
+	params := &parameters{}
+	err = json.NewDecoder(r.Body).Decode(&params)
 	if err != nil {
 		log.Printf("Error decoding json: %v", err)
 		respondWithError(w, http.StatusInternalServerError, "Error decoding json: ", err)
 		return
 	}
-	if len(reqBody.Body) > 140 {
+
+	// Chirp is too long
+	if len(params.Body) > 140 {
 		respondWithError(w, http.StatusBadRequest, "Chirp is longer than 140 characters", err)
 		return
 	}
-	
-	// TODO:
-	// Start checking for valid UUID? Let's start without checks, 
-	// since it'll be a string and I don't know how the tests are written.
-	// I am getting they are using generate random UUID, though.
-
 
 	// Sanitize bad words - if we get to here, everything is correct,
-	cleanedChirp := replaceBadWords(reqBody.Body)
+	cleanedChirp := replaceBadWords(params.Body)
 	// let's create the chirp
 	chirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
-		Body: cleanedChirp,
-		UserID: reqBody.UserID,
+		Body:   cleanedChirp,
+		UserID: userID,
 	})
 	if err != nil {
 		log.Printf("Error creating the chirp in DB: %v", err)
@@ -60,12 +68,13 @@ func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request
 	}
 
 	respondWithJSON(w, http.StatusCreated, Chirp{
-		Body: chirp.Body,
-		Id: chirp.ID,
+		Body:      chirp.Body,
+		Id:        chirp.ID,
 		CreatedAt: chirp.CreatedAt,
 		UpdatedAt: chirp.UpdatedAt,
-		UserID: chirp.UserID,
+		UserID:    chirp.UserID,
 	})
+
 }
 
 // Replaces any bad words, words are preset in the function
@@ -85,7 +94,7 @@ func replaceBadWords(chirpMsg string) (cleanedString string) {
 		}
 
 		// Check for punctuation
-		if unicode.IsPunct(rune(word[len(word) - 1])) {
+		if unicode.IsPunct(rune(word[len(word)-1])) {
 			continue
 		}
 

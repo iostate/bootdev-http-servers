@@ -14,9 +14,10 @@ import (
 )
 
 type apiConfig struct {
-	fileServerHits atomic.Int32
-	db 	*database.Queries
-	platform string
+	fileServerHits 		atomic.Int32
+	db 					*database.Queries
+	platform 			string
+	jwtSecret 			string
 }
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
@@ -36,15 +37,22 @@ func main() {
 	}
 	dbConn, err := sql.Open("postgres", dbURL)
 	if err != nil {
-		log.Printf("Error opening databsae: %w", err)
+		log.Printf("Error opening databsae: %v", err)
 	}
 	dbQueries := database.New(dbConn)
+
+	// Get JWT Secret
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatal("JWT Secret not set")
+	}
 
 	// Add database.Queries to apiCfg
 	apiCfg := apiConfig{
 		fileServerHits: atomic.Int32{},
 		db: dbQueries,
 		platform: os.Getenv("PLATFORM"),
+		jwtSecret: jwtSecret,
 	}
 	
 
