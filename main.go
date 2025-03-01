@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"net/http"
 	"os"
 	"sync/atomic"
 
+	auth "github.com/iostate/bootdev-http-servers/internal"
 	"github.com/iostate/bootdev-http-servers/internal/database"
 
 	"github.com/joho/godotenv"
@@ -23,6 +25,30 @@ type apiConfig struct {
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cfg.fileServerHits.Add(1)
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (cfg *apiConfig) storeUserInContextMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		jwtToken, err := auth.GetBearerToken(r.Header)
+		if err != nil {
+			log.Printf("token is wrong? %s", err)
+			respondWithError(w, http.StatusUnauthorized, "Error getting bearer token", err)
+			return
+		}
+
+		// break down JWT and get the user id
+		userID, err := auth.ValidateJWT(jwtToken, cfg.jwtSecret)
+		if err != nil {
+			log.Printf("token could not be validated")
+			respondWithError(w, http.StatusUnauthorized, "Could not validate JWT", err)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), "userID", userID)
+		r = r.WithContext(ctx)
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -59,6 +85,7 @@ func main() {
 	fs := http.FileServer(http.Dir("."))
 	fsHandler := http.StripPrefix("/app", fs)
 
+	mux.Handle("PUT /api/users", apiCfg.storeUserInContextMiddleware(http.HandlerFunc(apiCfg.handlerUsersUpdate)))
 	mux.HandleFunc("POST /api/refresh", apiCfg.handleRefresh)
 	mux.HandleFunc("POST /api/revoke", apiCfg.handleRevoke)
 	mux.HandleFunc("POST /api/login", apiCfg.handlerLogin)
