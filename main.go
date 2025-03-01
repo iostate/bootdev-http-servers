@@ -85,13 +85,15 @@ func main() {
 	fs := http.FileServer(http.Dir("."))
 	fsHandler := http.StripPrefix("/app", fs)
 
+	// wow, route parameter extraction not allowed with http pkg
+	mux.Handle("DELETE /api/chirps/{chirpID}", apiCfg.storeUserInContextMiddleware(http.HandlerFunc(apiCfg.handlerChirpsDelete)))
+	mux.HandleFunc("POST /api/chirps", apiCfg.handlerChirpsCreate)
+	mux.HandleFunc("GET /api/chirps", apiCfg.handlerGetChirps)
 	mux.Handle("PUT /api/users", apiCfg.storeUserInContextMiddleware(http.HandlerFunc(apiCfg.handlerUsersUpdate)))
 	mux.HandleFunc("POST /api/refresh", apiCfg.handleRefresh)
 	mux.HandleFunc("POST /api/revoke", apiCfg.handleRevoke)
 	mux.HandleFunc("POST /api/login", apiCfg.handlerLogin)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handlerGetChirpsById)
-	mux.HandleFunc("POST /api/chirps", apiCfg.handlerChirpsCreate)
-	mux.HandleFunc("GET /api/chirps", apiCfg.handlerGetChirps)
 	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
