@@ -24,6 +24,7 @@ type UserLoginResponse struct {
 	Email        string    `json:"email"`
 	JWTToken     string    `json:"token"`
 	RefreshToken string    `json:"refresh_token"`
+	IsChirpyRed  bool      `json:"is_chirpy_red"`
 }
 
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
@@ -81,5 +82,6 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		Email:        user.Email,
 		JWTToken:     token,
 		RefreshToken: refreshTokenDbItem.Token,
+		IsChirpyRed:  user.IsChirpyRed.Bool,
 	})
 }

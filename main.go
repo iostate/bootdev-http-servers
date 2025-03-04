@@ -86,6 +86,7 @@ func main() {
 	fsHandler := http.StripPrefix("/app", fs)
 
 	// wow, route parameter extraction not allowed with http pkg
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.handleUpgradeToChirpyRed)
 	mux.Handle("DELETE /api/chirps/{chirpID}", apiCfg.storeUserInContextMiddleware(http.HandlerFunc(apiCfg.handlerChirpsDelete)))
 	mux.HandleFunc("POST /api/chirps", apiCfg.handlerChirpsCreate)
 	mux.HandleFunc("GET /api/chirps", apiCfg.handlerGetChirps)

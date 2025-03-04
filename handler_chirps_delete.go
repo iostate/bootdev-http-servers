@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -12,8 +11,6 @@ func (cfg *apiConfig) handlerChirpsDelete(w http.ResponseWriter, r *http.Request
 
 	chirpIDString := r.PathValue("chirpID")
 	chirpUUID, err := uuid.Parse(chirpIDString)
-
-	log.Printf("chirpIDString = %s\n", chirpIDString) // working!
 
 	// get user id
 	userID, ok := r.Context().Value("userID").(uuid.UUID)

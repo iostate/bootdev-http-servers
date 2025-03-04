@@ -12,15 +12,16 @@ import (
 )
 
 type UserRequest struct {
-	Email 		string 		`json:"email"`
-	Password	string		`json:"password"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type UserResponse struct {
-	Id 			uuid.UUID	`json:"id"`
-	Created_at 	time.Time 	`json:"created_at"`
-	Updated_at	time.Time 	`json:"updated_at"`
-	Email 		string 		`json:"email"`
+	Id         uuid.UUID `json:"id"`
+	Created_at time.Time `json:"created_at"`
+	Updated_at time.Time `json:"updated_at"`
+	Email      string    `json:"email"`
+	ChirpyRed  bool      `json:"is_chirpy_red"`
 }
 
 func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
@@ -40,11 +41,11 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		respondWithError(w, http.StatusInternalServerError, "Error hashing password", err)
 		return
 	}
-	
+
 	// Create User
-	
+
 	user, err := cfg.db.CreateUser(r.Context(), database.CreateUserParams{
-		Email: req.Email, 
+		Email:          req.Email,
 		HashedPassword: hashedPw,
 	})
 	if err != nil {
@@ -55,10 +56,10 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 
 	// Build JSON response
 	userResponse := UserResponse{
-		Id: user.ID,
+		Id:         user.ID,
 		Created_at: user.CreatedAt,
 		Updated_at: user.UpdatedAt,
-		Email: user.Email,
+		Email:      user.Email,
 	}
-	respondWithJSON(w,http.StatusCreated, userResponse)
+	respondWithJSON(w, http.StatusCreated, userResponse)
 }
